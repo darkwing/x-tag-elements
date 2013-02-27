@@ -5,10 +5,11 @@
     <meta charset="utf-8" />
     <title>Dragbox</title>
     
-    <link rel="stylesheet" type="text/css" href="../../demo/css/reset.css"/>
+    <!--<link rel="stylesheet" type="text/css" href="../demo/css/reset.css"/>-->
 	<link rel="stylesheet" type="text/css" href="dragbox.css"/>
 
-    <script type="text/javascript" src="../lib/x-tag/x-tag.js"></script> 
+	<script type="text/javascript" src="../../x-tag-core/components/document.register/src/document.register.js"></script> 
+    <script type="text/javascript" src="../../x-tag-core/src/core.js"></script> 
     <script type="text/javascript" src="dragbox.js"></script>
 
 	<style>
@@ -22,14 +23,16 @@
 
 <body>
 
-	<x-dragbox id="dragbox">
-
+	<x-dragbox id="dragbox" sortable="true">
 		<div>1</div>
-		
 		<div>2</div>
-		
 		<div>3</div>
-		
+	</x-dragbox>
+
+	<x-dragbox id="dragbox2" sortable="true">
+		<div>4</div>
+		<div>5</div>
+		<div>6</div>
 	</x-dragbox>
 
 </body>

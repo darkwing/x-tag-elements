@@ -1,49 +1,85 @@
+/* 
 
-(function(){
+Specs
+============================
+https://etherpad.mozilla.org/dragbox-specs
+
+FYI
+============================
+If we could merge dragdrop and dragend together, we'd have the three pieces we need
+to really make this work without a local var
+
+*/
+
+(function() {
+	function setItemSortable(element) {
+		xtag.toArray(element.children).forEach(function(item){
+			item.setAttribute('draggable', element.getAttribute('sortable'));
+		});
+	}
+
+	function dumpEvent(event, that) {
+		console.log(' ');
+		console.log('--------------------------');
+		console.log(' ');
+		console.log('dragbox: ', that, that.outerHTML);
+		console.log(event.type, event);
+		['target', 'relatedTarget', 'rangeParent', 'originalTarget', 'explicitOriginalTarget', 'currentTarget', 'toElement', 'fromElement', 'srcElement'].forEach(function(i) {
+			console.log('event["' + i + '"]', event[i] ? event[i].outerHTML : null, event[i]);
+		});
+		console.log('elementFromPoint: ', document.elementFromPoint(event.pageX, event.pageY), event.pageX, event.pageY);
+	}
 	
-	var originElement = null, dropElement = null;
-
 	xtag.register('x-dragbox', {
-		onCreate: function(){
+		lifecycle: { // NEW
+		  created: function(){
 			var self = this;
-			xtag.toArray(this.children).forEach(function(item){
-				item.setAttribute('draggable', true);
-			});
-			xtag.observe(this, function(element){
-				if (element.parentNode == self) element.setAttribute('draggable', true);
-			});
-		},
-		getters: {
-		
-		},
-		setters: {
-		
-		},
-		accessors: {
-			'for': {
-				get: function(){
-					
-				},
-				set: function(){
-					
+			
+			setItemSortable(this);
+			xtag.addObserver(this, 'inserted', function(element){
+				if (element.parentNode == self) {
+					setItemSortable(self);
 				}
+			});
+		  },
+		  inserted: function(){},
+		  removed: function(){},
+		  attributeChanged: function(name, value){
+		  	if(name == 'sortable') setItemSortable(this);
+		  }
+		},
+		prototype: { // You can pass prototypes and we will create a new obj for you 
+		},
+		accessors: { // New way of declaring getters/setters
+			sortable: {
+				get: function() {
+					return typeof this.getAttribute(sortable) != 'undefined';
+				},
+				set: function(state) {
+					var bool = !!state;
+					bool ? this.setAttribute('sortable', null) : this.removeAttribute('sortable');
+				}
+			},
+			'drop-position': {
+
 			}
 		},
-		events: {
+		methods: {  // SAME
+		},
+		events: { /* Check these vs. the old pattern! */
 			dragstart: function(event){
 				if (event.target.parentNode == this){
-					originElement = event.target;
 					xtag.addClass(event.target, 'x-dragbox-drag-origin');
 					event.dataTransfer.effectAllowed = 'move';
+					event.dataTransfer.dropEffect = 'move';
 					event.dataTransfer.setData('text/html', this.innerHTML);
-					this.droppables
 				}
 			},
 			dragenter: function(event){
+				//dumpEvent(event);
+
 				var parent = event.target.parentNode;
-				if (event.target.id = parent && parent.tagName.match(/x-dragbox/i)){
-					console.log(event);
-					dropElement = event.target;
+				if (parent.tagName.match(/x-dragbox/i)){
 					xtag.addClass(event.target, 'x-dragbox-drag-over');
 				}
 			},
@@ -53,22 +89,26 @@
 				return false;
 			},
 			dragleave: function(event){
-				if (dropElement != event.relatedTarget) dropElement = null;
 				xtag.removeClass(event.target, 'x-dragbox-drag-over');
 			},
-			dragdrop: function(event){
-				if (event.stopPropagation) event.stopPropagation();
-				console.log(dragElement, dropElement);
-				if (dropElement && dragElement != this) {
-					dropElement.parentNode.insertBefore(dragElement, dropElement);
-				}
-				xtag.removeClass(event.target, 'x-dragbox-drag-over');
-				return false;
+			drop: function(event) {
+				dumpEvent(event, this);
+				window.dropEvent = event;
 			},
-			dragend: function(event){
+			dragdrop: function(event){ // DO NOT USE THIS -- NOT SUPPORTED IN ALL BROWSERS (i.e. chrome)
+				
+			},
+			dragend: function(event){/*
+				event.stopPropagation();
+
+				dumpEvent(event, this);
+				*/
+				window.dragEvent = event;
+
+				xtag.removeClass(event.target, 'x-dragbox-drag-over');
 				xtag.removeClass(event.target, 'x-dragbox-drag-origin');
+				
 			}
 		}
 	});
-
 })();
