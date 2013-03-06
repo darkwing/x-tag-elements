@@ -10,42 +10,59 @@ To Do:
 -  Do something with "setItemSortable" -- that's not right
 -  Should we make children draggable=true by default, or should users need to do that manually?
 
+Thoughts:
+============================
+-  "prevent-drop" and "prevent-drag" seem defaults harsh
+
 */
 
 (function() {
 	var dragElement;
 
-	function boolSet(attr) {
-		return function(state) {
-			!!state ? this.setAttribute(attr, null) : this.removeAttribute(attr);
-		}
-	}
-
-	function boolGet(attr) {
-		return function() {
-			return typeof this.getAttribute(attr) != 'undefined';
-		}
-	}
-
 	xtag.register('x-dragbox', {
 		lifecycle: {
-		  created: function(){},
+		  created: function(){
+		  	var self = this;
+		  	this.makeSortable(this.children);
+		  	xtag.addObserver(this, 'inserted', function(element){
+				if (element.parentNode == self) self.makeSortable([element]);
+			});
+		  },
 		  inserted: function(){},
 		  removed: function(){},
 		  attributeChanged: function(name, value){}
 		},
 		prototype: {},
 		accessors: {
-			sortable: {
-				get: boolGet('sortable'),
-				set: boolSet('sortable')
+			sortable: { // "true" or "false"
+				get: function() {
+					!!this.getAttribute('sortable');
+				},
+				set: function(state) {
+					!!state ? this.setAttribute('sortable', null) : this.removeAttribute('sortable');
+				}
+			},
+			'prevent-drop': { // CSS selector
+				get: function() {
+					return this.getAttribute('prevent-drop') || '*';
+				}
+			},
+			'prevent-drag': { // CSS selector
+				get: function() {
+					return this.getAttribute('prevent-drag') || '*';
+				}
 			}
 		},
 		methods: {  // SAME
+			makeSortable:  function(elements) {
+				xtag.toArray(elements).forEach(function(el) {
+					el.setAttribute("draggable", "true");
+				});
+			}
 		},
 		events: { /* Check these vs. the old pattern! */
 			dragstart: function(event){
-				if (event.target.parentNode == this){
+				if (event.target.parentNode == this && !xtag.matchSelector(event.target, this['prevent-drag'])){
 					dragElement = event.target;
 					xtag.addClass(event.target, 'x-dragbox-drag-origin');
 					event.dataTransfer.effectAllowed = 'move';
@@ -60,9 +77,8 @@ To Do:
 				}
 			},
 			dragover: function(event){
-				//console.log('dragover!');
 				if (event.preventDefault) event.preventDefault();
-				event.dataTransfer.dropEffect = 'move'; 
+				event.dataTransfer.dropEffect = 'move';  // ? need
 				return false;
 			},
 			dragleave: function(event){
@@ -71,17 +87,19 @@ To Do:
 				}
 			},
 			drop: function(event) {
-				if(!dragElement) return;
 				event.stopPropagation();
+
+				// There are cases where absolutely no drop is allowed
+				if(!dragElement || this['prevent-drop'] == '*') return;
 
 				// If within own box, insert before sibling
 				var target = event.target,
 					parent = target.parentNode,
-					position = this.getAttribute('drop-position') || 'bottom',
+					position = this['drop-position'] || 'bottom',
 					children;
 
 				if(parent == dragElement.parentNode) {
-					if(!this.getAttribute('sortable')) return; // is this correct usage per spec?
+					if(!this['sortable']) return; // is this correct usage per spec?
 
 					children = xtag.toArray(this.children);
 
