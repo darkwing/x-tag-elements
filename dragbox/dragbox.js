@@ -4,49 +4,41 @@ Specs
 ============================
 https://etherpad.mozilla.org/dragbox-specs
 
+To Do:
+============================
+-  Verify that CSS classes are added / removed to the correct
+-  Do something with "setItemSortable" -- that's not right
+-  Should we make children draggable=true by default, or should users need to do that manually?
+
 */
 
 (function() {
-	function setItemSortable(element) {
-		xtag.toArray(element.children).forEach(function(item){
-			item.setAttribute('draggable', element.getAttribute('sortable'));
-		});
+	var dragElement;
+
+	function boolSet(attr) {
+		return function(state) {
+			!!state ? this.setAttribute(attr, null) : this.removeAttribute(attr);
+		}
 	}
 
-	var dragElement;
+	function boolGet(attr) {
+		return function() {
+			return typeof this.getAttribute(attr) != 'undefined';
+		}
+	}
+
 	xtag.register('x-dragbox', {
-		lifecycle: { // NEW
-		  created: function(){
-			var self = this;
-			
-			setItemSortable(this);
-			xtag.addObserver(this, 'inserted', function(element){
-				if (element.parentNode == self) {
-					setItemSortable(self);
-				}
-			});
-		  },
+		lifecycle: {
+		  created: function(){},
 		  inserted: function(){},
 		  removed: function(){},
-		  attributeChanged: function(name, value){
-		  	if(name == 'sortable') setItemSortable(this);
-		  }
+		  attributeChanged: function(name, value){}
 		},
-		prototype: { // You can pass prototypes and we will create a new obj for you 
-		},
-		accessors: { // New way of declaring getters/setters
+		prototype: {},
+		accessors: {
 			sortable: {
-				get: function() {
-					console.log('sortable getter');
-					return typeof this.getAttribute('sortable') != 'undefined';
-				},
-				set: function(state) {
-					var bool = !!state;
-					bool ? this.setAttribute('sortable', null) : this.removeAttribute('sortable');
-				}
-			},
-			'drop-position': {
-
+				get: boolGet('sortable'),
+				set: boolSet('sortable')
 			}
 		},
 		methods: {  // SAME
@@ -74,31 +66,31 @@ https://etherpad.mozilla.org/dragbox-specs
 				return false;
 			},
 			dragleave: function(event){
-				xtag.removeClass(event.target, 'x-dragbox-drag-over');
+				if(event.target.nodeType == 1) { // Text nodes encountered, removeClass will bomb
+					xtag.removeClass(event.target, 'x-dragbox-drag-over');
+				}
 			},
 			drop: function(event) {
 				if(!dragElement) return;
 				event.stopPropagation();
 
 				// If within own box, insert before sibling
-				var parent = event.target.parentNode,
+				var target = event.target,
+					parent = target.parentNode,
+					position = this.getAttribute('drop-position') || 'bottom',
 					children;
 
 				if(parent == dragElement.parentNode) {
-					if(!this.getAttribute('drop-position')) return; // is this correct usage per spec?
+					if(!this.getAttribute('sortable')) return; // is this correct usage per spec?
 
 					children = xtag.toArray(this.children);
-					// Put into position based on to/from logic
-					if(children.indexOf(dragElement) > children.indexOf(event.target)) {
-						parent.insertBefore(dragElement, event.target);
-					}
-					else {
-						parent.insertBefore(dragElement, event.target.nextSibling);
-					}
+
+					// Put into position based on to/from logic (i.e. dragged in from left or right)
+					position = children.indexOf(dragElement) > children.indexOf(target) ? target : target.nextSibling;
+					parent.insertBefore(dragElement, position);
 				}
 				else {
 					// These will only be executed if moved to another box
-					var position = this.getAttribute('drop-position');
 					if(!position || position == 'bottom' || !this.children.length) {
 						this.appendChild(dragElement);
 					}
@@ -110,15 +102,13 @@ https://etherpad.mozilla.org/dragbox-specs
 					}
 				}
 			},
-			dragdrop: function(event){ // DO NOT USE THIS -- NOT SUPPORTED IN ALL BROWSERS (i.e. chrome)
-				
+			dragdrop: function(event){
+				// DO NOT USE THIS -- NOT SUPPORTED IN ALL BROWSERS (i.e. chrome)
 			},
-			dragend: function(event){/**/
+			dragend: function(event){
 				event.stopPropagation();
-
 				xtag.removeClass(event.target, 'x-dragbox-drag-over');
 				xtag.removeClass(event.target, 'x-dragbox-drag-origin');
-				
 			}
 		}
 	});

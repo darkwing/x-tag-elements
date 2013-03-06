@@ -23,13 +23,29 @@
 			border: 1px solid #ccc;
 			margin-bottom: 20px;
 		}
+
+		div {
+			display: inline-block;
+			width: 100px;
+			height: 100px;
+			margin: 20px;
+			background: red;
+		}
+
+		div:first-child {
+			background: purple;
+		}
+
+		div:last-child {
+			background: blue;
+		}
 	</style>
 </head>
 
 <body>
 
 	<x-dragbox id="dragbox" sortable="true">
-		<div>1</div>
+		<div draggable="true">1</div>
 		<div>2</div>
 		<div>3</div>
 		<div>4</div>

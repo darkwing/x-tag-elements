@@ -3,7 +3,7 @@ x-dragbox {
 	display: block;
 }
 
-x-dragbox > * {
+x-dragbox > *[draggable] {
 	user-select: none;
 	-o-user-select: none;
 	-ms-user-select: none;
@@ -15,20 +15,4 @@ x-dragbox > * {
 
 .x-dragbox-drag-origin {
 	opacity: 0.5;
-}
-
-div {
-	display: inline-block;
-	width: 100px;
-	height: 100px;
-	margin: 20px;
-	background: red;
-}
-
-div:first-child {
-	background: purple;
-}
-
-div:last-child {
-	background: blue;
 }
