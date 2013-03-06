@@ -7,8 +7,6 @@ https://etherpad.mozilla.org/dragbox-specs
 To Do:
 ============================
 -  Verify that CSS classes are added / removed to the correct
--  Do something with "setItemSortable" -- that's not right
--  Should we make children draggable=true by default, or should users need to do that manually?
 
 */
 
@@ -17,52 +15,40 @@ To Do:
 
 	function valueOrDefault(attr) {
 		return function() {
-			return this.hasAttribute(attr) ? this.getAttribute(attr) : '.xxxxxxboo';
+			return this.hasAttribute(attr) ? this.getAttribute(attr) : false;
 		}
 	}
 
 	xtag.register('x-dragbox', {
 		lifecycle: {
-		  created: function(){
-		  	var self = this;
-		  	this.makeSortable(this.children);
-		  	xtag.addObserver(this, 'inserted', function(element){
-				if (element.parentNode == self) {
-					self.makeSortable([element]);
-				}
-			});
-		  }
+			created: function(){
+				var self = this;
+				this.makeSortable(this.getDropElement().children);
+				xtag.addObserver(this, 'inserted', function(element){
+					if (element.parentNode == self.getDropElement()) {
+						self.makeSortable([element]);
+					}
+				});
+			}
 		},
 		prototype: {},
 		accessors: {
 			sortable: { // "true" or "false"
 				get: function() {
-					!!this.getAttribute('sortable');
+					return !!this.getAttribute('sortable');
 				},
 				set: function(state) {
-					!!state ? this.setAttribute('sortable', null) : this.removeAttribute('sortable');
+					return !!state ? this.setAttribute('sortable', null) : this.removeAttribute('sortable');
 				}
 			},
 			'drag-elements': {
-				get: function() {
-					return this.getAttribute('drag-elements') || '> *';
+				get: function() { // Returns the children
+					return this.getAttribute('drag-elements') || false;
 				}
 			},
 			'drop-element': {
 				get: function() {
-					var selector = this.getAttribute('drop-element'),
-						dropElement = this;
-
-					// Try to find it; wrapping intry/catch in case we get a bad selector.
-					try {
-						var match = xtag.query(this, selector);
-						if(match[0]) dropElement = match[0];
-					}
-					catch(e){ // debug
-						console.log('drop-element exception: ', e);
-					}
-
-					return dropElement;
+					return this.getAttribute('drop-element') || false;
 				}
 			},
 			'prevent-drop': { // CSS selector
@@ -75,17 +61,29 @@ To Do:
 		methods: {  // SAME
 			makeSortable:  function(elements) {
 				var self = this;
-
 				xtag.toArray(elements).forEach(function(el) {
-					if(xtag.matchSelector(el, self['drag-elements'])) { 
+					var dragElementSelector = self['drag-elements'];
+					if(!dragElementSelector || xtag.matchSelector(el, dragElementSelector)) { 
 						el.setAttribute('draggable', 'true'); 
 					}
 				});
+			},
+			getDropElement: function() {
+				var selector = this['drop-element'],
+					element = this,
+					result;
+
+				if(selector) {
+					result = xtag.queryChildren(this, selector);
+					if(result[0]) element = result[0];
+				}
+				return element;
 			}
 		},
 		events: { /* Check these vs. the old pattern! */
 			dragstart: function(event){
-				if (event.target.parentNode == this && !xtag.matchSelector(event.target, this['prevent-drag'])){
+				var preventDragSelector = this['prevent-drag'];
+				if (event.target.parentNode == this.getDropElement() && (!preventDragSelector || !xtag.matchSelector(event.target, preventDragSelector))){
 					dragElement = event.target;
 					xtag.addClass(event.target, 'x-dragbox-drag-origin');
 					event.dataTransfer.effectAllowed = 'move';
@@ -113,18 +111,22 @@ To Do:
 				event.stopPropagation();
 
 				// There are cases where absolutely no drop is allowed
-				if(!dragElement || this['prevent-drop'] == '*') return;
+				if(!dragElement) return;
+				// Don't allow 
+				var preventDropSelector = this['prevent-drop'];
+				if(preventDropSelector && xtag.matchSelector(dragElement, preventDropSelector)) return;
 
 				// If within own box, insert before sibling
 				var target = event.target,
 					parent = target.parentNode,
 					position = this['drop-position'] || 'bottom',
+					dropElement = this.getDropElement(),
 					children;
 
-				if(parent == dragElement.parentNode) {
-					if(!this['sortable']) return; // is this correct usage per spec?
+				if(this.getDropElement() == dragElement.parentNode) {
+					if(!this.sortable) return; // is this correct usage per spec?
 
-					children = xtag.toArray(this.children);
+					children = xtag.toArray(dropElement.children);
 
 					// Put into position based on to/from logic (i.e. dragged in from left or right)
 					position = children.indexOf(dragElement) > children.indexOf(target) ? target : target.nextSibling;
@@ -132,11 +134,11 @@ To Do:
 				}
 				else {
 					// These will only be executed if moved to another box
-					if(!position || position == 'bottom' || !this.children.length) {
-						this.appendChild(dragElement);
+					if(!position || position == 'bottom' || !dropElement.children.length) {
+						dropElement.appendChild(dragElement);
 					}
 					else if(position == 'top') {
-						this.insertBefore(dragElement, this.children[0]);
+						dropElement.insertBefore(dragElement, dropElement.children[0]);
 					}
 					else { // relative
 

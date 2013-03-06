@@ -3,7 +3,7 @@ x-dragbox {
 	display: block;
 }
 
-x-dragbox > *[draggable] {
+x-dragbox *[draggable] {
 	user-select: none;
 	-o-user-select: none;
 	-ms-user-select: none;
