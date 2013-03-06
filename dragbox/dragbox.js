@@ -90,11 +90,9 @@ https://etherpad.mozilla.org/dragbox-specs
 					children = xtag.toArray(this.children);
 					// Put into position based on to/from logic
 					if(children.indexOf(dragElement) > children.indexOf(event.target)) {
-						console.log('if');
 						parent.insertBefore(dragElement, event.target);
 					}
 					else {
-						console.log('else');
 						parent.insertBefore(dragElement, event.target.nextSibling);
 					}
 				}
