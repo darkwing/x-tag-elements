@@ -12,12 +12,18 @@ To Do:
 
 Thoughts:
 ============================
--  "prevent-drop" and "prevent-drag" seem defaults harsh
+-  "prevent-drop" and "prevent-drag" seem defaults harsh; without defining them, the thing is a brick
 
 */
 
 (function() {
 	var dragElement;
+
+	function valueOrDefault(attr, def) {
+		return function() {
+			return this.getAttribute(attr) || (def || '*');
+		}
+	}
 
 	xtag.register('x-dragbox', {
 		lifecycle: {
@@ -27,10 +33,11 @@ Thoughts:
 		  	xtag.addObserver(this, 'inserted', function(element){
 				if (element.parentNode == self) self.makeSortable([element]);
 			});
-		  },
+		  } /*,
 		  inserted: function(){},
 		  removed: function(){},
 		  attributeChanged: function(name, value){}
+		  */
 		},
 		prototype: {},
 		accessors: {
@@ -42,21 +49,22 @@ Thoughts:
 					!!state ? this.setAttribute('sortable', null) : this.removeAttribute('sortable');
 				}
 			},
+			'drag-elements': {
+				get: valueOrDefault('> *')
+			},
 			'prevent-drop': { // CSS selector
-				get: function() {
-					return this.getAttribute('prevent-drop') || '*';
-				}
+				get: valueOrDefault('prevent-drop')
 			},
 			'prevent-drag': { // CSS selector
-				get: function() {
-					return this.getAttribute('prevent-drag') || '*';
-				}
+				get: valueOrDefault('prevent-drag')
 			}
 		},
 		methods: {  // SAME
 			makeSortable:  function(elements) {
+				var self = this;
+
 				xtag.toArray(elements).forEach(function(el) {
-					el.setAttribute("draggable", "true");
+					if(xtag.matchSelector(el, self['drag-elements'])) { el.setAttribute('draggable', 'true'); }
 				});
 			}
 		},
@@ -71,9 +79,9 @@ Thoughts:
 				}
 			},
 			dragenter: function(event){
-				this.dragElement = event
-				if (event.target.parentNode.tagName.match(/x-dragbox/i)){
-					xtag.addClass(event.target, 'x-dragbox-drag-over');
+				var target = event.target;
+				if (target.parentNode.tagName.match(/x-dragbox/i)){
+					xtag.addClass(target, 'x-dragbox-drag-over');
 				}
 			},
 			dragover: function(event){
@@ -116,7 +124,9 @@ Thoughts:
 						this.insertBefore(dragElement, this.children[0]);
 					}
 					else { // relative
-						
+
+					 	// TODO
+
 					}
 				}
 			},
