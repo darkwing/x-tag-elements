@@ -4,11 +4,6 @@ Specs
 ============================
 https://etherpad.mozilla.org/dragbox-specs
 
-FYI
-============================
-If we could merge dragdrop and dragend together, we'd have the three pieces we need
-to really make this work without a local var
-
 */
 
 (function() {
@@ -18,18 +13,7 @@ to really make this work without a local var
 		});
 	}
 
-	function dumpEvent(event, that) {
-		console.log(' ');
-		console.log('--------------------------');
-		console.log(' ');
-		console.log('dragbox: ', that, that.outerHTML);
-		console.log(event.type, event);
-		['target', 'relatedTarget', 'rangeParent', 'originalTarget', 'explicitOriginalTarget', 'currentTarget', 'toElement', 'fromElement', 'srcElement'].forEach(function(i) {
-			console.log('event["' + i + '"]', event[i] ? event[i].outerHTML : null, event[i]);
-		});
-		console.log('elementFromPoint: ', document.elementFromPoint(event.pageX, event.pageY), event.pageX, event.pageY);
-	}
-	
+	var dragElement;
 	xtag.register('x-dragbox', {
 		lifecycle: { // NEW
 		  created: function(){
@@ -53,7 +37,8 @@ to really make this work without a local var
 		accessors: { // New way of declaring getters/setters
 			sortable: {
 				get: function() {
-					return typeof this.getAttribute(sortable) != 'undefined';
+					console.log('sortable getter');
+					return typeof this.getAttribute('sortable') != 'undefined';
 				},
 				set: function(state) {
 					var bool = !!state;
@@ -69,6 +54,7 @@ to really make this work without a local var
 		events: { /* Check these vs. the old pattern! */
 			dragstart: function(event){
 				if (event.target.parentNode == this){
+					dragElement = event.target;
 					xtag.addClass(event.target, 'x-dragbox-drag-origin');
 					event.dataTransfer.effectAllowed = 'move';
 					event.dataTransfer.dropEffect = 'move';
@@ -76,14 +62,13 @@ to really make this work without a local var
 				}
 			},
 			dragenter: function(event){
-				//dumpEvent(event);
-
-				var parent = event.target.parentNode;
-				if (parent.tagName.match(/x-dragbox/i)){
+				this.dragElement = event
+				if (event.target.parentNode.tagName.match(/x-dragbox/i)){
 					xtag.addClass(event.target, 'x-dragbox-drag-over');
 				}
 			},
 			dragover: function(event){
+				//console.log('dragover!');
 				if (event.preventDefault) event.preventDefault();
 				event.dataTransfer.dropEffect = 'move'; 
 				return false;
@@ -92,18 +77,46 @@ to really make this work without a local var
 				xtag.removeClass(event.target, 'x-dragbox-drag-over');
 			},
 			drop: function(event) {
-				dumpEvent(event, this);
-				window.dropEvent = event;
+				if(!dragElement) return;
+				event.stopPropagation();
+
+				// If within own box, insert before sibling
+				var parent = event.target.parentNode,
+					children;
+
+				if(parent == dragElement.parentNode) {
+					if(!this.getAttribute('drop-position')) return; // is this correct usage per spec?
+
+					children = xtag.toArray(this.children);
+					// Put into position based on to/from logic
+					if(children.indexOf(dragElement) > children.indexOf(event.target)) {
+						console.log('if');
+						parent.insertBefore(dragElement, event.target);
+					}
+					else {
+						console.log('else');
+						parent.insertBefore(dragElement, event.target.nextSibling);
+					}
+				}
+				else {
+					// These will only be executed if moved to another box
+					var position = this.getAttribute('drop-position');
+					if(!position || position == 'bottom' || !this.children.length) {
+						this.appendChild(dragElement);
+					}
+					else if(position == 'top') {
+						this.insertBefore(dragElement, this.children[0]);
+					}
+					else { // relative
+						
+					}
+				}
 			},
 			dragdrop: function(event){ // DO NOT USE THIS -- NOT SUPPORTED IN ALL BROWSERS (i.e. chrome)
 				
 			},
-			dragend: function(event){/*
+			dragend: function(event){/**/
 				event.stopPropagation();
-
-				dumpEvent(event, this);
-				*/
-				window.dragEvent = event;
 
 				xtag.removeClass(event.target, 'x-dragbox-drag-over');
 				xtag.removeClass(event.target, 'x-dragbox-drag-origin');
