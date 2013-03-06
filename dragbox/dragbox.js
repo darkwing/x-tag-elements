@@ -10,18 +10,14 @@ To Do:
 -  Do something with "setItemSortable" -- that's not right
 -  Should we make children draggable=true by default, or should users need to do that manually?
 
-Thoughts:
-============================
--  "prevent-drop" and "prevent-drag" seem defaults harsh; without defining them, the thing is a brick
-
 */
 
 (function() {
 	var dragElement;
 
-	function valueOrDefault(attr, def) {
+	function valueOrDefault(attr) {
 		return function() {
-			return this.getAttribute(attr) || (def || '*');
+			return this.hasAttribute(attr) ? this.getAttribute(attr) : '.xxxxxxboo';
 		}
 	}
 
@@ -31,13 +27,11 @@ Thoughts:
 		  	var self = this;
 		  	this.makeSortable(this.children);
 		  	xtag.addObserver(this, 'inserted', function(element){
-				if (element.parentNode == self) self.makeSortable([element]);
+				if (element.parentNode == self) {
+					self.makeSortable([element]);
+				}
 			});
-		  } /*,
-		  inserted: function(){},
-		  removed: function(){},
-		  attributeChanged: function(name, value){}
-		  */
+		  }
 		},
 		prototype: {},
 		accessors: {
@@ -50,7 +44,26 @@ Thoughts:
 				}
 			},
 			'drag-elements': {
-				get: valueOrDefault('> *')
+				get: function() {
+					return this.getAttribute('drag-elements') || '> *';
+				}
+			},
+			'drop-element': {
+				get: function() {
+					var selector = this.getAttribute('drop-element'),
+						dropElement = this;
+
+					// Try to find it; wrapping intry/catch in case we get a bad selector.
+					try {
+						var match = xtag.query(this, selector);
+						if(match[0]) dropElement = match[0];
+					}
+					catch(e){ // debug
+						console.log('drop-element exception: ', e);
+					}
+
+					return dropElement;
+				}
 			},
 			'prevent-drop': { // CSS selector
 				get: valueOrDefault('prevent-drop')
@@ -64,7 +77,9 @@ Thoughts:
 				var self = this;
 
 				xtag.toArray(elements).forEach(function(el) {
-					if(xtag.matchSelector(el, self['drag-elements'])) { el.setAttribute('draggable', 'true'); }
+					if(xtag.matchSelector(el, self['drag-elements'])) { 
+						el.setAttribute('draggable', 'true'); 
+					}
 				});
 			}
 		},
