@@ -12,7 +12,3 @@ x-dragbox *[draggable] {
 	-webkit-user-select: none;
 	cursor: move;
 }
-
-.x-dragbox-drag-origin {
-	opacity: 0.5;
-}

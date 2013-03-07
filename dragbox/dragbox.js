@@ -6,17 +6,23 @@ https://etherpad.mozilla.org/dragbox-specs
 
 To Do:
 ============================
--  Verify that CSS classes are added / removed to the correct
+-  Relative drop positioning....wtf
 
 */
 
 (function() {
 	var dragElement;
 
-	function valueOrDefault(attr) {
+	function selectorGet(attr) {
 		return function() {
 			return this.hasAttribute(attr) ? this.getAttribute(attr) : false;
-		}
+		};
+	}
+
+	function selectorSet(attr) {
+		return function(value) {
+			return value ? this.setAttribute(attr, value) : this.removeAttribute(attr);
+		};
 	}
 
 	xtag.register('x-dragbox', {
@@ -42,20 +48,20 @@ To Do:
 				}
 			},
 			dragElements: {
-				get: function() { // Returns the children
-					return this.getAttribute('drag-elements') || false;
-				}
+				get: selectorGet('drag-elements'),
+				set: selectorSet('drag-elements')
 			},
 			dropElement: {
-				get: function() {
-					return this.getAttribute('drop-element') || false;
-				}
+				get: selectorGet('drop-element'),
+				set: selectorSet('drop-element')
 			},
 			preventDrop: { // CSS selector
-				get: valueOrDefault('prevent-drop')
+				get: selectorGet('prevent-drop'),
+				set: selectorSet('prevent-drop')
 			},
 			preventDrag: { // CSS selector
-				get: valueOrDefault('prevent-drag')
+				get: selectorGet('prevent-drag'),
+				set: selectorSet('prevent-drag')
 			}
 		},
 		methods: {
@@ -116,14 +122,16 @@ To Do:
 					dropElement = this.getDropElement(),
 					children;
 
-				if(this.getDropElement() == dragElement.parentNode) {
+				if(dropElement == dragElement.parentNode) {
 					if(!this.sortable) return; // is this correct usage per spec?
 
 					children = xtag.toArray(dropElement.children);
 
 					// Put into position based on to/from logic (i.e. dragged in from left or right)
 					position = children.indexOf(dragElement) > children.indexOf(target) ? target : target.nextSibling;
-					parent.insertBefore(dragElement, position);
+					if(dropElement != position) {
+						dropElement.insertBefore(dragElement, position);
+					}
 				}
 				else {
 					// These will only be executed if moved to another box
