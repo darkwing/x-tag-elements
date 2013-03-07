@@ -102,8 +102,9 @@ To Do:
 				return false;
 			},
 			dragleave: function(event){
-				if(event.target.nodeType == 1) { // Text nodes encountered, removeClass will bomb
-					xtag.removeClass(event.target, 'x-dragbox-drag-over');
+				var target = event.target;
+				if(target.nodeType == 1) { // Text nodes encountered, removeClass will bomb
+					xtag.removeClass(target, 'x-dragbox-drag-over');
 				}
 			},
 			drop: function(event) {
@@ -122,6 +123,10 @@ To Do:
 					dropElement = this.getDropElement(),
 					children;
 
+				// Remove CSS class regardless
+				xtag.removeClass(target, 'x-dragbox-drag-over');
+
+				// If a draggable was dropped *internally*
 				if(dropElement == dragElement.parentNode) {
 					if(!this.sortable) return; // is this correct usage per spec?
 
@@ -153,7 +158,6 @@ To Do:
 			},
 			dragend: function(event){
 				event.stopPropagation();
-				xtag.removeClass(event.target, 'x-dragbox-drag-over');
 				xtag.removeClass(event.target, 'x-dragbox-drag-origin');
 			}
 		}
