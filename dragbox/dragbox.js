@@ -41,48 +41,41 @@ To Do:
 					return !!state ? this.setAttribute('sortable', null) : this.removeAttribute('sortable');
 				}
 			},
-			'drag-elements': {
+			dragElements: {
 				get: function() { // Returns the children
 					return this.getAttribute('drag-elements') || false;
 				}
 			},
-			'drop-element': {
+			dropElement: {
 				get: function() {
 					return this.getAttribute('drop-element') || false;
 				}
 			},
-			'prevent-drop': { // CSS selector
+			preventDrop: { // CSS selector
 				get: valueOrDefault('prevent-drop')
 			},
-			'prevent-drag': { // CSS selector
+			preventDrag: { // CSS selector
 				get: valueOrDefault('prevent-drag')
 			}
 		},
-		methods: {  // SAME
+		methods: {
 			makeSortable:  function(elements) {
 				var self = this;
 				xtag.toArray(elements).forEach(function(el) {
-					var dragElementSelector = self['drag-elements'];
+					var dragElementSelector = self.dragElements;
 					if(!dragElementSelector || xtag.matchSelector(el, dragElementSelector)) { 
 						el.setAttribute('draggable', 'true'); 
 					}
 				});
 			},
 			getDropElement: function() {
-				var selector = this['drop-element'],
-					element = this,
-					result;
-
-				if(selector) {
-					result = xtag.queryChildren(this, selector);
-					if(result[0]) element = result[0];
-				}
-				return element;
+				var selector = this.dropElement;
+				return (selector) ? xtag.queryChildren(this, selector)[0] || this : this;
 			}
 		},
-		events: { /* Check these vs. the old pattern! */
+		events: {
 			dragstart: function(event){
-				var preventDragSelector = this['prevent-drag'];
+				var preventDragSelector = this.preventDrag;
 				if (event.target.parentNode == this.getDropElement() && (!preventDragSelector || !xtag.matchSelector(event.target, preventDragSelector))){
 					dragElement = event.target;
 					xtag.addClass(event.target, 'x-dragbox-drag-origin');
@@ -113,13 +106,13 @@ To Do:
 				// There are cases where absolutely no drop is allowed
 				if(!dragElement) return;
 				// Don't allow 
-				var preventDropSelector = this['prevent-drop'];
+				var preventDropSelector = this.preventDrop;
 				if(preventDropSelector && xtag.matchSelector(dragElement, preventDropSelector)) return;
 
 				// If within own box, insert before sibling
 				var target = event.target,
 					parent = target.parentNode,
-					position = this['drop-position'] || 'bottom',
+					position = this.dropPosition || 'bottom',
 					dropElement = this.getDropElement(),
 					children;
 
