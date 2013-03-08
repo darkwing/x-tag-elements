@@ -108,6 +108,16 @@
 		</ul>
 	</x-dragbox>
 
+	<h2>Different Drop (inner UL), Only .li's draggable, no DIVs allowed to be dragged in, relative</h2>
+	<x-dragbox id="dragbox5" drop-element=".dropinme" drag-elements=".li" prevent-drop="div" sortable="true" drop-position="relative">
+		<ul class="dropinme">
+			<li>21</li>
+			<li class="li">22</li>
+			<li class="li">23</li>
+			<li>24</li>
+		</ul>
+	</x-dragbox>
+
 </body>
 
 </html>

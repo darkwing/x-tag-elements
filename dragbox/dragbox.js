@@ -4,12 +4,7 @@ Specs
 ============================
 https://etherpad.mozilla.org/dragbox-specs
 
-To Do:
-============================
--  Relative drop positioning....wtf
-
 */
-
 (function() {
 	var dragElement;
 
@@ -46,6 +41,12 @@ To Do:
 				set: function(state) {
 					return !!state ? this.setAttribute('sortable', null) : this.removeAttribute('sortable');
 				}
+			},
+			dropPosition: {
+				get: function() {
+					return this.getAttribute('drop-position') || 'bottom';
+				},
+				set: selectorSet('drop-position')
 			},
 			dragElements: {
 				get: selectorGet('drag-elements'),
@@ -112,14 +113,14 @@ To Do:
 
 				// There are cases where absolutely no drop is allowed
 				if(!dragElement) return;
-				// Don't allow 
+
+				// Don't allow selectors that have been explicity identified as no-go's
 				var preventDropSelector = this.preventDrop;
 				if(preventDropSelector && xtag.matchSelector(dragElement, preventDropSelector)) return;
 
-				// If within own box, insert before sibling
 				var target = event.target,
 					parent = target.parentNode,
-					position = this.dropPosition || 'bottom',
+					position = this.dropPosition,
 					dropElement = this.getDropElement(),
 					children;
 
@@ -143,13 +144,8 @@ To Do:
 					if(!position || position == 'bottom' || !dropElement.children.length) {
 						dropElement.appendChild(dragElement);
 					}
-					else if(position == 'top') {
-						dropElement.insertBefore(dragElement, dropElement.children[0]);
-					}
-					else { // relative
-
-					 	// TODO
-
+					else {
+						dropElement.insertBefore(dragElement, position == 'top'? dropElement.children[0] : target);
 					}
 				}
 			},
