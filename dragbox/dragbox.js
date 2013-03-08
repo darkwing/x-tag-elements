@@ -6,17 +6,25 @@ https://etherpad.mozilla.org/dragbox-specs
 
 */
 (function() {
-	var dragElement;
+	var tagRegex = /x-dragbox/i,
+		dragElement;
 
-	function selectorGet(attr) {
+	function standardGet(attr) {
 		return function() {
 			return this.hasAttribute(attr) ? this.getAttribute(attr) : false;
 		};
 	}
 
-	function selectorSet(attr) {
+	function standardSet(attr) {
 		return function(value) {
 			return value ? this.setAttribute(attr, value) : this.removeAttribute(attr);
+		};
+	}
+
+	function standardGetSet(attr) {
+		return {
+			get: standardGet(attr),
+			set: standardSet(attr)
 		};
 	}
 
@@ -46,24 +54,12 @@ https://etherpad.mozilla.org/dragbox-specs
 				get: function() {
 					return this.getAttribute('drop-position') || 'bottom';
 				},
-				set: selectorSet('drop-position')
+				set: standardSet('drop-position')
 			},
-			dragElements: {
-				get: selectorGet('drag-elements'),
-				set: selectorSet('drag-elements')
-			},
-			dropElement: {
-				get: selectorGet('drop-element'),
-				set: selectorSet('drop-element')
-			},
-			preventDrop: { // CSS selector
-				get: selectorGet('prevent-drop'),
-				set: selectorSet('prevent-drop')
-			},
-			preventDrag: { // CSS selector
-				get: selectorGet('prevent-drag'),
-				set: selectorSet('prevent-drag')
-			}
+			dragElements: standardGetSet('drag-elements'),
+			dropElement: standardGetSet('drop-element'),
+			preventDrop: standardGetSet('prevent-drop'),
+			preventDrag: standardGetSet('prevent-drag')
 		},
 		methods: {
 			makeSortable:  function(elements) {
@@ -82,10 +78,11 @@ https://etherpad.mozilla.org/dragbox-specs
 		},
 		events: {
 			dragstart: function(event){
-				var preventDragSelector = this.preventDrag;
-				if (event.target.parentNode == this.getDropElement() && (!preventDragSelector || !xtag.matchSelector(event.target, preventDragSelector))){
-					dragElement = event.target;
-					xtag.addClass(event.target, 'x-dragbox-drag-origin');
+				var preventDragSelector = this.preventDrag,
+					target = event.target;
+				if (target.parentNode == this.getDropElement() && (!preventDragSelector || !xtag.matchSelector(target, preventDragSelector))){
+					dragElement = target;
+					xtag.addClass(dragElement, 'x-dragbox-drag-origin');
 					event.dataTransfer.effectAllowed = 'move';
 					event.dataTransfer.dropEffect = 'move';
 					event.dataTransfer.setData('text/html', this.innerHTML);
@@ -93,7 +90,7 @@ https://etherpad.mozilla.org/dragbox-specs
 			},
 			dragenter: function(event){
 				var target = event.target;
-				if (target.parentNode.tagName.match(/x-dragbox/i)){
+				if (target.parentNode.tagName.match(tagRegex)){
 					xtag.addClass(target, 'x-dragbox-drag-over');
 				}
 			},
@@ -122,7 +119,7 @@ https://etherpad.mozilla.org/dragbox-specs
 					parent = target.parentNode,
 					position = this.dropPosition,
 					dropElement = this.getDropElement(),
-					children;
+					children = xtag.toArray(dropElement.children);
 
 				// Remove CSS class regardless
 				xtag.removeClass(target, 'x-dragbox-drag-over');
@@ -131,21 +128,21 @@ https://etherpad.mozilla.org/dragbox-specs
 				if(dropElement == dragElement.parentNode) {
 					if(!this.sortable) return; // is this correct usage per spec?
 
-					children = xtag.toArray(dropElement.children);
-
 					// Put into position based on to/from logic (i.e. dragged in from left or right)
 					position = children.indexOf(dragElement) > children.indexOf(target) ? target : target.nextSibling;
 					if(dropElement != position) {
 						dropElement.insertBefore(dragElement, position);
 					}
 				}
+				// These will only be executed if moved to another box
 				else {
-					// These will only be executed if moved to another box
-					if(!position || position == 'bottom' || !dropElement.children.length) {
+					var relativeElement = position == 'top'? children[0] || target : target;
+
+					if(position == 'bottom' || children.indexOf(relativeElement) == -1) {
 						dropElement.appendChild(dragElement);
 					}
 					else {
-						dropElement.insertBefore(dragElement, position == 'top'? dropElement.children[0] : target);
+						dropElement.insertBefore(dragElement, relativeElement);
 					}
 				}
 			},
